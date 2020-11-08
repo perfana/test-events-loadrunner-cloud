@@ -21,7 +21,7 @@ Under an events enabled maven plugin:
 ```xml
 <plugin>
     <groupId>nl.stokpop</groupId>
-    <artifactId>events-gatling-maven-plugin</artifactId>
+    <artifactId>event-scheduler-maven-plugin</artifactId>
     <!-- and more ... -->
 ```
 
@@ -67,7 +67,6 @@ and create an event for the LoadRunner Cloud:
 
 ##Todo
 
-* implement `abortTest` event that stops the running load test (this will then also work with the Perfana kill switch!)
 * create lookups for the project and test ids based on names
 
 Works with the Stokpop event-scheduler framework: 

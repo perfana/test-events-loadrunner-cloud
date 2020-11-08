@@ -45,7 +45,7 @@ dependencies {
 }
 
 group = 'io.perfana'
-version = '1.0.0-SNAPSHOT'
+version = '1.0.1-SNAPSHOT'
 description = 'test-events-loadrunner-cloud'
 sourceCompatibility = '1.8'
 

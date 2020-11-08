@@ -20,15 +20,14 @@ import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.perfana.event.loadrunner.api.Auth;
-import io.perfana.event.loadrunner.api.Schedule;
-import io.perfana.event.loadrunner.api.ScheduleReply;
-import io.perfana.event.loadrunner.api.Token;
+import io.perfana.event.loadrunner.api.*;
 import nl.stokpop.eventscheduler.api.EventLogger;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
@@ -52,6 +51,7 @@ import java.time.ZonedDateTime;
 class LoadRunnerCloudClient {
     
     public static final String PARAM_TENANTID = "TENANTID";
+    private static final String PARAM_RUN_ACTION = "action";
 
     private final ObjectMapper objectMapper = new ObjectMapper()
         .registerModule(new JavaTimeModule())
@@ -59,6 +59,7 @@ class LoadRunnerCloudClient {
 
     private final ObjectReader tokenReader = objectMapper.readerFor(Token.class);
     private final ObjectReader scheduleReplyReader = objectMapper.readerFor(ScheduleReply.class);
+    private final ObjectReader runReplyReader = objectMapper.readerFor(RunReply.class);
     private final ObjectWriter authWriter = objectMapper.writerFor(Auth.class);
 
     private final HttpClient httpClient;
@@ -93,6 +94,11 @@ class LoadRunnerCloudClient {
      * @param tenantId LoadRunner tenantId
      */
     public void initApiKey(String user, String password, String tenantId) {
+
+        notEmpty(user, "user");
+        notEmpty(password, "password");
+        notEmpty(tenantId, "tenantId");
+
         String apiKey = fetchApiKey(baseUrl, user, password, tenantId);
         this.tenantId = tenantId;
 
@@ -102,6 +108,12 @@ class LoadRunnerCloudClient {
         cookieStore.addCookie(cookie);
 
         isCookiePresent = true;
+    }
+
+    private void notEmpty(String user, String name) {
+        if (user == null || user.isEmpty()) {
+            throw new LoadRunnerCloudClientException(name + " is null or empty");
+        }
     }
 
     private String fetchApiKey(String baseUrl, String user, String password, String tenantId) {
@@ -132,9 +144,15 @@ class LoadRunnerCloudClient {
 
     private HttpClient createHttpClient(boolean useProxy) {
 
+        RequestConfig requestConfig = RequestConfig.custom()
+            .setConnectionRequestTimeout(1000)
+            .setConnectTimeout(1000)
+            .setSocketTimeout(5000).build();
+
         HttpClientBuilder httpClientBuilder = HttpClients.custom()
             .setDefaultCookieStore(cookieStore)
-            .setRedirectStrategy(new LaxRedirectStrategy());
+            .setRedirectStrategy(new LaxRedirectStrategy())
+            .setDefaultRequestConfig(requestConfig);
 
         if (useProxy) {
             HttpHost httpProxy = new HttpHost("localhost", 8888);
@@ -174,7 +192,7 @@ class LoadRunnerCloudClient {
      * @param projectId number of the project
      * @param loadTestId number of the loadTest
      */
-    public ScheduleReply startTest(String projectId, String loadTestId) {
+    public ScheduleReply createSchedule(String projectId, String loadTestId) {
         checkApiKey();
 
         String uri = String.format("%s/projects/%s/load-tests/%s/schedules", baseUrl, projectId, loadTestId);
@@ -199,6 +217,62 @@ class LoadRunnerCloudClient {
             logger.debug(result);
 
             return scheduleReplyReader.readValue(result);
+
+        } catch (URISyntaxException | IOException e) {
+            throw new LoadRunnerCloudClientException("call to LoadRunner cloud failed", e);
+        }
+    }
+
+    /**
+     * Start a run immediately.
+     *
+     * @param projectId number of the project
+     * @param loadTestId number of the loadTest
+     */
+    public RunReply startRun(String projectId, String loadTestId) {
+        checkApiKey();
+
+        String uri = String.format("%s/projects/%s/load-tests/%s/runs", baseUrl, projectId, loadTestId);
+
+        try {
+            URIBuilder uriBuilder = new URIBuilder(uri);
+            uriBuilder.addParameter(PARAM_TENANTID, tenantId);
+
+            HttpPost httpPost = new HttpPost(uriBuilder.build());
+
+            HttpResponse response = executeRequest(httpPost);
+            String result = responseToString(response);
+            logger.debug(result);
+
+            return runReplyReader.readValue(result);
+
+        } catch (URISyntaxException | IOException e) {
+            throw new LoadRunnerCloudClientException("call to LoadRunner cloud failed", e);
+        }
+    }
+
+    /**
+     * Stop a run immediately.
+     *
+     * @param runId number of the run
+     */
+    public RunReply stopRun(int runId) {
+        checkApiKey();
+
+        String uri = String.format("%s/test-runs/%d", baseUrl, runId);
+
+        try {
+            URIBuilder uriBuilder = new URIBuilder(uri);
+            uriBuilder.addParameter(PARAM_TENANTID, tenantId);
+            uriBuilder.addParameter(PARAM_RUN_ACTION, "STOP");
+
+            HttpPut httpPut = new HttpPut(uriBuilder.build());
+
+            HttpResponse response = executeRequest(httpPut);
+            String result = responseToString(response);
+            logger.debug(result);
+
+            return runReplyReader.readValue(result);
 
         } catch (URISyntaxException | IOException e) {
             throw new LoadRunnerCloudClientException("call to LoadRunner cloud failed", e);

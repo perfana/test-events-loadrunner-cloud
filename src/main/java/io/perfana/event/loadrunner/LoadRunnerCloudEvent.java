@@ -15,9 +15,10 @@
  */
 package io.perfana.event.loadrunner;
 
-import io.perfana.event.loadrunner.api.ScheduleReply;
+import io.perfana.event.loadrunner.api.RunReply;
 import nl.stokpop.eventscheduler.api.*;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
@@ -37,7 +38,9 @@ public class LoadRunnerCloudEvent extends EventAdapter {
     private static final Set<String> ALLOWED_PROPERTIES = setOf(PROP_LOAD_RUNNER_USER, PROP_LOAD_RUNNER_PASSWORD, PROP_USE_PROXY, PROP_LOAD_RUNNER_TENANT_ID, PROP_LOAD_RUNNER_PROJECT_ID, PROP_LOAD_RUNNER_LOAD_TEST_ID);
     private static final Set<String> ALLOWED_CUSTOM_EVENTS = Collections.emptySet();
 
-    private LoadRunnerCloudClient client;
+    private volatile LoadRunnerCloudClient client;
+
+    private volatile int runId;
 
     public LoadRunnerCloudEvent(String eventName, TestContext testContext, EventProperties eventProperties, EventLogger logger) {
         super(eventName, testContext, eventProperties, logger);
@@ -59,10 +62,19 @@ public class LoadRunnerCloudEvent extends EventAdapter {
 
         client.initApiKey(user, password, tenantId);
 
-        ScheduleReply scheduleReply = client.startTest(projectId, loadTestId);
+        RunReply runId = client.startRun(projectId, loadTestId);
 
-        logger.info(String.format("started projectId: %s loadTestId: %s at %s with scheduleId: %s",
-            projectId, loadTestId, scheduleReply.getTimestamp(), scheduleReply.getScheduleId()));
+        this.runId = runId.getRunId();
+
+        logger.info(String.format("started run with projectId: %s loadTestId: %s at %s with runId: %s",
+            projectId, loadTestId, Instant.now(), runId.getRunId()));
+    }
+
+    @Override
+    public void abortTest() {
+        logger.info("abort test [" + testContext.getTestRunId() + "] with runId [" + this.runId + "]");
+
+        client.stopRun(runId);
     }
 
     private String findProperty(String propertyName) {
