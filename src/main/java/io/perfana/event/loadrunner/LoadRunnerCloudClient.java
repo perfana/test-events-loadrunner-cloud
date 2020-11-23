@@ -26,6 +26,7 @@ import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -47,6 +48,8 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 class LoadRunnerCloudClient {
     
@@ -60,6 +63,7 @@ class LoadRunnerCloudClient {
     private final ObjectReader tokenReader = objectMapper.readerFor(Token.class);
     private final ObjectReader scheduleReplyReader = objectMapper.readerFor(ScheduleReply.class);
     private final ObjectReader runReplyReader = objectMapper.readerFor(RunReply.class);
+    private final ObjectReader scriptConfigArrayReader = objectMapper.readerFor(ScriptConfig[].class);
     private final ObjectWriter authWriter = objectMapper.writerFor(Auth.class);
 
     private final HttpClient httpClient;
@@ -145,9 +149,9 @@ class LoadRunnerCloudClient {
     private HttpClient createHttpClient(boolean useProxy) {
 
         RequestConfig requestConfig = RequestConfig.custom()
-            .setConnectionRequestTimeout(1000)
-            .setConnectTimeout(1000)
-            .setSocketTimeout(5000).build();
+            .setConnectionRequestTimeout(1_000)
+            .setConnectTimeout(4_000)
+            .setSocketTimeout(10_000).build();
 
         HttpClientBuilder httpClientBuilder = HttpClients.custom()
             .setDefaultCookieStore(cookieStore)
@@ -245,6 +249,34 @@ class LoadRunnerCloudClient {
             logger.debug(result);
 
             return runReplyReader.readValue(result);
+
+        } catch (URISyntaxException | IOException e) {
+            throw new LoadRunnerCloudClientException("call to LoadRunner cloud failed", e);
+        }
+    }
+
+    /**
+     * Get script info for test run.
+     *
+     * @param projectId number of the project
+     * @param loadTestId number of the loadTest
+     */
+    public List<ScriptConfig> scriptsForTestRun(String projectId, String loadTestId) {
+        checkApiKey();
+
+        String uri = String.format("%s/projects/%s/load-tests/%s/scripts", baseUrl, projectId, loadTestId);
+
+        try {
+            URIBuilder uriBuilder = new URIBuilder(uri);
+            uriBuilder.addParameter(PARAM_TENANTID, tenantId);
+
+            HttpGet httpGet = new HttpGet(uriBuilder.build());
+
+            HttpResponse response = executeRequest(httpGet);
+            String result = responseToString(response);
+            logger.debug(result);
+
+            return Arrays.asList(scriptConfigArrayReader.readValue(result));
 
         } catch (URISyntaxException | IOException e) {
             throw new LoadRunnerCloudClientException("call to LoadRunner cloud failed", e);
