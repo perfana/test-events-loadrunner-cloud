@@ -64,6 +64,7 @@ class LoadRunnerCloudClient {
     private final ObjectReader scheduleReplyReader = objectMapper.readerFor(ScheduleReply.class);
     private final ObjectReader runReplyReader = objectMapper.readerFor(RunReply.class);
     private final ObjectReader scriptConfigArrayReader = objectMapper.readerFor(ScriptConfig[].class);
+    private final ObjectReader runtimeAdditionalAttributeArrayReader = objectMapper.readerFor(RuntimeAdditionalAttribute[].class);
     private final ObjectWriter authWriter = objectMapper.writerFor(Auth.class);
 
     private final HttpClient httpClient;
@@ -144,6 +145,10 @@ class LoadRunnerCloudClient {
         } catch (URISyntaxException | IOException e) {
             throw new LoadRunnerCloudClientException("call to LoadRunner cloud failed", e);
         }
+    }
+
+    private void checkApiKey() {
+        if (!isCookiePresent) throw new LoadRunnerCloudClientException("No LoadRunner cloud client api key present. First call initApiKey with credentials.");
     }
 
     private HttpClient createHttpClient(boolean useProxy) {
@@ -254,6 +259,33 @@ class LoadRunnerCloudClient {
             throw new LoadRunnerCloudClientException("call to LoadRunner cloud failed", e);
         }
     }
+    /**
+     * Stop a run immediately.
+     *
+     * @param runId number of the run
+     */
+    public RunReply stopRun(int runId) {
+        checkApiKey();
+
+        String uri = String.format("%s/test-runs/%d", baseUrl, runId);
+
+        try {
+            URIBuilder uriBuilder = new URIBuilder(uri);
+            uriBuilder.addParameter(PARAM_TENANTID, tenantId);
+            uriBuilder.addParameter(PARAM_RUN_ACTION, "STOP");
+
+            HttpPut httpPut = new HttpPut(uriBuilder.build());
+
+            HttpResponse response = executeRequest(httpPut);
+            String result = responseToString(response);
+            logger.debug(result);
+
+            return runReplyReader.readValue(result);
+
+        } catch (URISyntaxException | IOException e) {
+            throw new LoadRunnerCloudClientException("call to LoadRunner cloud failed", e);
+        }
+    }
 
     /**
      * Get script info for test run.
@@ -284,34 +316,61 @@ class LoadRunnerCloudClient {
     }
 
     /**
-     * Stop a run immediately.
+     * Update or add test script's additional attributes in local RTS (RunTime Settings).
      *
-     * @param runId number of the run
+     * @param projectId number of the project
+     * @param loadTestId number of the loadTest
+     * @param loadTestScriptId number of the script
+     * @param attributes list of runtime settings attributes to set
      */
-    public RunReply stopRun(int runId) {
+    public List<RuntimeAdditionalAttribute> addAdditionalRuntimeSettingsAttributes(
+            String projectId, String loadTestId, int loadTestScriptId, List<RuntimeAdditionalAttribute> attributes) {
+
         checkApiKey();
 
-        String uri = String.format("%s/test-runs/%d", baseUrl, runId);
+        String uri = String.format("%s/projects/%s/load-tests/%s/scripts/%d/rts/additional-attributes",
+            baseUrl, projectId, loadTestId, loadTestScriptId);
 
         try {
             URIBuilder uriBuilder = new URIBuilder(uri);
             uriBuilder.addParameter(PARAM_TENANTID, tenantId);
-            uriBuilder.addParameter(PARAM_RUN_ACTION, "STOP");
 
             HttpPut httpPut = new HttpPut(uriBuilder.build());
+
+            String json = objectMapper.writeValueAsString(attributes);
+            StringEntity data = new StringEntity(json, ContentType.APPLICATION_JSON);
+
+            httpPut.setEntity(data);
 
             HttpResponse response = executeRequest(httpPut);
             String result = responseToString(response);
             logger.debug(result);
 
-            return runReplyReader.readValue(result);
+            return Arrays.asList(runtimeAdditionalAttributeArrayReader.readValue(result));
 
         } catch (URISyntaxException | IOException e) {
             throw new LoadRunnerCloudClientException("call to LoadRunner cloud failed", e);
         }
     }
 
-    private void checkApiKey() {
-        if (!isCookiePresent) throw new LoadRunnerCloudClientException("No LoadRunner cloud client api key present. First call initApiKey with credentials.");
+    /**
+     * Update or add test script's additional attributes in local RTS.
+     *
+     * @param projectId number of the project
+     * @param loadTestId number of the loadTest
+     * @param attributes list of runtime settings attributes to set
+     */
+    public void addAdditionalRuntimeSettingsAttributesForAllScriptsOfTest(
+        String projectId, String loadTestId, List<RuntimeAdditionalAttribute> attributes) {
+
+        List<ScriptConfig> scriptConfigs = scriptsForTestRun(projectId, loadTestId);
+
+        int scriptCount = scriptConfigs.size();
+        logger.info("Updating " + scriptCount + " " + (scriptCount == 1 ? "script" : "scripts") + " with local runtime settings attributes: " + attributes);
+
+        scriptConfigs.stream()
+            .map(ScriptConfig::getScriptId)
+            .forEach(scriptId -> addAdditionalRuntimeSettingsAttributes(projectId, loadTestId, scriptId, attributes));
     }
+
 }

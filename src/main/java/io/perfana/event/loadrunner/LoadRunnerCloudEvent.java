@@ -16,11 +16,13 @@
 package io.perfana.event.loadrunner;
 
 import io.perfana.event.loadrunner.api.RunReply;
+import io.perfana.event.loadrunner.api.RuntimeAdditionalAttribute;
 import nl.stokpop.eventscheduler.api.*;
 
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 public class LoadRunnerCloudEvent extends EventAdapter {
@@ -61,6 +63,15 @@ public class LoadRunnerCloudEvent extends EventAdapter {
         client = new LoadRunnerCloudClient(LOADRUNNER_CLOUD_BASE_URL, logger, useProxy);
 
         client.initApiKey(user, password, tenantId);
+
+        RuntimeAdditionalAttribute attribute = RuntimeAdditionalAttribute.builder()
+            .name("perfanaTestRunId")
+            .value(testContext.getTestRunId())
+            .description("Use in web_add_header(\"perfana-test-run-id\", lr_get_attrib_string(\"perfanaTestRunId\"))").build();
+
+        List<RuntimeAdditionalAttribute> attributes = Collections.singletonList(attribute);
+
+        client.addAdditionalRuntimeSettingsAttributesForAllScriptsOfTest(projectId, loadTestId, attributes);
 
         RunReply runId = client.startRun(projectId, loadTestId);
 
