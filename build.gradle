@@ -27,7 +27,7 @@ dependencies {
     ext.httpClientVersion="4.5.13"
     ext.lombokVersion="1.18.16"
 
-    compile "nl.stokpop:event-scheduler:2.2.2"
+    compile "nl.stokpop:event-scheduler:3.0.0-M1-SNAPSHOT"
     compile "org.apache.httpcomponents:httpclient:$httpClientVersion"
     compile "org.apache.httpcomponents:httpmime:$httpClientVersion"
     compile "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
@@ -45,7 +45,7 @@ dependencies {
 }
 
 group = 'io.perfana'
-version = '1.0.1-SNAPSHOT'
+version = '1.1.0-SNAPSHOT'
 description = 'test-events-loadrunner-cloud'
 sourceCompatibility = '1.8'
 
@@ -67,9 +67,10 @@ license {
     header = file("src/main/resources/META-INF/LICENSE.txt")
     ext.year = Calendar.getInstance().get(Calendar.YEAR)
     ext.name = 'Peter Paul Bakker, Perfana'
-    exclude "**/*.txt"
+    excludes(["**/*.txt", "src/main/resources/META-INF/services"])
     // the standard java style makes intellij complain about dangling javadoc
     mapping('java', 'SLASHSTAR_STYLE')
+    skipExistingHeaders true
 }
 
 nexusPublishing {

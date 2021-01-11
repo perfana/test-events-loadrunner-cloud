@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Peter Paul Bakker, Perfana
+ * Copyright (C) 2021 Peter Paul Bakker, Perfana
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,11 +15,13 @@
  */
 package io.perfana.event.loadrunner;
 
-import nl.stokpop.eventscheduler.api.*;
+import nl.stokpop.eventscheduler.api.Event;
+import nl.stokpop.eventscheduler.api.EventFactory;
+import nl.stokpop.eventscheduler.api.EventLogger;
 
-public class LoadRunnerCloudEventFactory implements EventFactory {
+public class LoadRunnerCloudEventFactory implements EventFactory<LoadRunnerCloudEventConfig> {
     @Override
-    public Event create(String eventName, TestContext testContext, EventProperties eventProperties, EventLogger logger) {
-        return new LoadRunnerCloudEvent(eventName, testContext, eventProperties, logger);
+    public Event create(LoadRunnerCloudEventConfig eventConfig, EventLogger logger) {
+        return new LoadRunnerCloudEvent(eventConfig, logger);
     }
 }

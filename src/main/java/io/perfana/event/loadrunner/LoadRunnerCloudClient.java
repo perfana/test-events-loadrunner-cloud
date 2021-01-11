@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Peter Paul Bakker, Perfana
+ * Copyright (C) 2021 Peter Paul Bakker, Perfana
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -369,7 +369,7 @@ class LoadRunnerCloudClient {
         logger.info("Updating " + scriptCount + " " + (scriptCount == 1 ? "script" : "scripts") + " with local runtime settings attributes: " + attributes);
 
         scriptConfigs.stream()
-            .map(ScriptConfig::getId)
+            .map(ScriptConfig::getScriptId)
             .forEach(scriptId -> addAdditionalRuntimeSettingsAttributes(projectId, loadTestId, scriptId, attributes));
     }
 

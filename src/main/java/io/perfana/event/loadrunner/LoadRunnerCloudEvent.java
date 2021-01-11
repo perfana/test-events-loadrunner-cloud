@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Peter Paul Bakker, Perfana
+ * Copyright (C) 2021 Peter Paul Bakker, Perfana
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,48 +17,36 @@ package io.perfana.event.loadrunner;
 
 import io.perfana.event.loadrunner.api.RunReply;
 import io.perfana.event.loadrunner.api.RuntimeAdditionalAttribute;
-import nl.stokpop.eventscheduler.api.*;
+import nl.stokpop.eventscheduler.api.EventAdapter;
+import nl.stokpop.eventscheduler.api.EventLogger;
 
 import java.time.Instant;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
-public class LoadRunnerCloudEvent extends EventAdapter {
+public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConfig> {
 
     private static final String LOADRUNNER_CLOUD_BASE_URL = "https://loadrunner-cloud.saas.microfocus.com/v1";
-
-    public static final String PROP_LOAD_RUNNER_USER = "loadRunnerUser";
-    public static final String PROP_LOAD_RUNNER_PASSWORD = "loadRunnerPassword";
-    public static final String PROP_LOAD_RUNNER_TENANT_ID = "loadRunnerTenantId";
-    public static final String PROP_LOAD_RUNNER_PROJECT_ID = "loadRunnerProjectId";
-    public static final String PROP_LOAD_RUNNER_LOAD_TEST_ID = "loadRunnerLoadTestId";
-
-    public static final String PROP_USE_PROXY = "useProxy";
-
-    private static final Set<String> ALLOWED_PROPERTIES = setOf(PROP_LOAD_RUNNER_USER, PROP_LOAD_RUNNER_PASSWORD, PROP_USE_PROXY, PROP_LOAD_RUNNER_TENANT_ID, PROP_LOAD_RUNNER_PROJECT_ID, PROP_LOAD_RUNNER_LOAD_TEST_ID);
-    private static final Set<String> ALLOWED_CUSTOM_EVENTS = Collections.emptySet();
 
     private volatile LoadRunnerCloudClient client;
 
     private volatile int runId;
 
-    public LoadRunnerCloudEvent(String eventName, TestContext testContext, EventProperties eventProperties, EventLogger logger) {
-        super(eventName, testContext, eventProperties, logger);
+    public LoadRunnerCloudEvent(LoadRunnerCloudEventConfig eventConfig, EventLogger logger) {
+        super(eventConfig, logger);
     }
 
     @Override
     public void beforeTest() {
-        logger.info("before test [" + testContext.getTestRunId() + "]");
+        logger.info("before test [" + eventConfig.getTestConfig().getTestRunId() + "]");
 
-        String user = findProperty(PROP_LOAD_RUNNER_USER);
-        String password = findProperty(PROP_LOAD_RUNNER_PASSWORD);
-        String tenantId = findProperty(PROP_LOAD_RUNNER_TENANT_ID);
-        String projectId = findProperty(PROP_LOAD_RUNNER_PROJECT_ID);
-        String loadTestId = findProperty(PROP_LOAD_RUNNER_LOAD_TEST_ID);
+        String user = eventConfig.getLoadRunnerUser();
+        String password = eventConfig.getLoadRunnerPassword();
+        String tenantId = eventConfig.getLoadRunnerTenantId();
+        String projectId = eventConfig.getLoadRunnerProjectId();
+        String loadTestId = eventConfig.getLoadRunnerLoadTestId();
 
-        boolean useProxy = Boolean.parseBoolean(eventProperties.getPropertyOrDefault(PROP_USE_PROXY, "false"));
+        boolean useProxy = eventConfig.isUseProxy();
 
         client = new LoadRunnerCloudClient(LOADRUNNER_CLOUD_BASE_URL, logger, useProxy);
 
@@ -66,7 +54,7 @@ public class LoadRunnerCloudEvent extends EventAdapter {
 
         RuntimeAdditionalAttribute attribute = RuntimeAdditionalAttribute.builder()
             .name("perfanaTestRunId")
-            .value(testContext.getTestRunId())
+            .value(eventConfig.getTestConfig().getTestRunId())
             .description("Use in web_add_header(\"perfana-test-run-id\", lr_get_attrib_string(\"perfanaTestRunId\"))").build();
 
         List<RuntimeAdditionalAttribute> attributes = Collections.singletonList(attribute);
@@ -83,31 +71,9 @@ public class LoadRunnerCloudEvent extends EventAdapter {
 
     @Override
     public void abortTest() {
-        logger.info("abort test [" + testContext.getTestRunId() + "] with runId [" + this.runId + "]");
+        logger.info("abort test [" + eventConfig.getTestConfig().getTestRunId() + "] with runId [" + this.runId + "]");
 
         client.stopRun(runId);
     }
 
-    private String findProperty(String propertyName) {
-        String property = eventProperties.getProperty(propertyName);
-        if (property == null) {
-            throw new LoadRunnerCloudEventException(String.format("property %s is not set", propertyName));
-        }
-        return property;
-    }
-
-    @Override
-    public void customEvent(CustomEvent scheduleEvent) {
-        logger.debug("ignoring unknown event [" + eventName + "]");
-    }
-
-    @Override
-    public Collection<String> allowedProperties() {
-        return ALLOWED_PROPERTIES;
-    }
-
-    @Override
-    public Collection<String> allowedCustomEvents() {
-        return ALLOWED_CUSTOM_EVENTS;
-    }
 }
