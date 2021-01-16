@@ -2,24 +2,48 @@
 
 Events to start and stop for LoadRunner Cloud tests.
 
-This event plugin schedules a test one minute from now.
+This event plugin start a LoadRunner Cloud test for the given LoadTest id.
 
-No other events than `beforeTest` event has been implemented yet.
+## events
+The `beforeTest` and `abortTest` event are implemented.
 
-Properties for LoadRunner Cloud:
+The `beforeTest` starts the load test and polls the LoadRunner Cloud server to see if
+the test changes from `INITIALIZING` state to `RUNNING` state. 
+
+## messages
+This is a `readyForStartParticipant`, so only when this event plugin sends a `Go!` message
+on the `eventMessageBus` the event scheduler can progress to the `startTest` event. 
+When the LoadRunner Cloud test reaches the `RUNNNING` state, the `Go!` message is sent.
+
+## properties for LoadRunner Cloud:
 * `loadRunnerUser` the user 
 * `loadRunnerPassword` the password 
 * `loadRunnerTenantId` the tenantId 
-* `loadRunnerProjectId` the projectId (look up in UI for defined test)
-* `loadRunnerLoadTestId` the LoadTestId (look up in UI for defined test) 
-* `useProxy` on port 8888, for example to use with fiddler
+* `loadRunnerProjectId` the projectId
+* `loadRunnerLoadTestId` the loadTestId
+* `pollingPeriodInSeconds` seconds between check if test is in RUNNING state (optional, default 10)
+* `pollingMaxDurationInSeconds` max duration to check if test gets to RUNNING state (optional, default 300)
+* `useProxy` activate proxy, for example to use with [mitmproxy](https://mitmproxy.org/) 
+* `proxyPort` port to use for proxy, uses localhost (optional, default 8888) 
 
-## Use with events-*-maven-plugin
+### notes
+* tenantId: look up in browser url of LoadRunner Cloud: `TENANTID=X`
+* projectId: look up in browser url of LoadRunner Cloud: `projectId=Y`
+* loadTestId: look up in UI for defined test: LOAD TESTS > select test > look at `ID: Z` in Summary
+
+## variables
+
+The LoadRunner Cloud plugin sends the following variables with a message on the `EventMessageBus`:
+* perfana-lcr-tenantId
+* perfana-lcr-projectId
+* perfana-lcr-runId
+
+## use with events-*-maven-plugin
 
 You can use the `test-events-loadrunner-cloud` as a plugin of the `events-*-maven-plugin`
 by putting the `test-events-loadrunner-cloud` jar on the classpath of the plugin.
 
-You can use the `dependencies` element inside the `plugin` element.
+Use the `dependencies` element inside the `plugin` element as in the XML snippet below.
 
 For example (from [example-pom.xml](src/test/resources/example-pom.xml)):
 

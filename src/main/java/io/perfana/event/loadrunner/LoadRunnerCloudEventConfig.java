@@ -23,11 +23,19 @@ public class LoadRunnerCloudEventConfig extends EventConfig {
     private String loadRunnerTenantId;
     private String loadRunnerProjectId;
     private String loadRunnerLoadTestId;
+    private int pollingPeriodInSeconds = 10;
+    private int pollingMaxDurationInSeconds = 300;
     private boolean useProxy = false;
+    private int proxyPort = 8888;
 
     @Override
     public String getEventFactory() {
         return LoadRunnerCloudEventFactory.class.getName();
+    }
+
+    @Override
+    public boolean isReadyForStartParticipant() {
+        return true;
     }
 
     public String getLoadRunnerUser() {
@@ -76,5 +84,29 @@ public class LoadRunnerCloudEventConfig extends EventConfig {
 
     public void setUseProxy(boolean useProxy) {
         this.useProxy = useProxy;
+    }
+
+    public int getPollingPeriodInSeconds() {
+        return pollingPeriodInSeconds;
+    }
+
+    public void setPollingPeriodInSeconds(int pollingPeriodInSeconds) {
+        this.pollingPeriodInSeconds = pollingPeriodInSeconds;
+    }
+
+    public int getPollingMaxDurationInSeconds() {
+        return pollingMaxDurationInSeconds;
+    }
+
+    public void setPollingMaxDurationInSeconds(int pollingMaxDurationInSeconds) {
+        this.pollingMaxDurationInSeconds = pollingMaxDurationInSeconds;
+    }
+
+    public int getProxyPort() {
+        return proxyPort;
+    }
+
+    public void setProxyPort(int proxyPort) {
+        this.proxyPort = proxyPort;
     }
 }

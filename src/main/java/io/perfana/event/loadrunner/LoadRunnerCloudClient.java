@@ -65,6 +65,7 @@ class LoadRunnerCloudClient {
     private final ObjectReader runReplyReader = objectMapper.readerFor(RunReply.class);
     private final ObjectReader scriptConfigArrayReader = objectMapper.readerFor(ScriptConfig[].class);
     private final ObjectReader runtimeAdditionalAttributeArrayReader = objectMapper.readerFor(RuntimeAdditionalAttribute[].class);
+    private final ObjectReader testRunsActiveArrayReader = objectMapper.readerFor(TestRunActive[].class);
     private final ObjectWriter authWriter = objectMapper.writerFor(Auth.class);
 
     private final HttpClient httpClient;
@@ -73,10 +74,15 @@ class LoadRunnerCloudClient {
 
     private final BasicCookieStore cookieStore = new BasicCookieStore();
     private final String host;
+    private final int proxyPort;
     private volatile boolean isCookiePresent = false;
     private volatile String tenantId;
 
-    public LoadRunnerCloudClient(String baseUrl, EventLogger logger, boolean useProxy) {
+    public LoadRunnerCloudClient(String baseUrl, EventLogger logger) {
+        this(baseUrl, logger, false, 8888);
+    }
+
+    public LoadRunnerCloudClient(String baseUrl, EventLogger logger, boolean useProxy, int proxyPort) {
         try {
             URL url = new URL(baseUrl);
             this.host = url.getHost();
@@ -86,6 +92,7 @@ class LoadRunnerCloudClient {
         this.baseUrl = removeLastSlashIfPresent(baseUrl);
         this.logger = logger;
         this.httpClient = createHttpClient(useProxy);
+        this.proxyPort = proxyPort;
     }
 
     private String removeLastSlashIfPresent(String url) {
@@ -164,7 +171,7 @@ class LoadRunnerCloudClient {
             .setDefaultRequestConfig(requestConfig);
 
         if (useProxy) {
-            HttpHost httpProxy = new HttpHost("localhost", 8888);
+            HttpHost httpProxy = new HttpHost("localhost", proxyPort);
             DefaultProxyRoutePlanner routePlanner = new DefaultProxyRoutePlanner(httpProxy);
             httpClientBuilder.setRoutePlanner(routePlanner);
         }
@@ -371,6 +378,38 @@ class LoadRunnerCloudClient {
         scriptConfigs.stream()
             .map(ScriptConfig::getScriptId)
             .forEach(scriptId -> addAdditionalRuntimeSettingsAttributes(projectId, loadTestId, scriptId, attributes));
+    }
+
+    /**
+     * Return results of all active load tests run.
+     *
+     * The statuses returned: RUNNING, INITIALIZING, CHECKING_STATUS, STOPPING, PAUSED
+     *
+     * @param projectId number of the project
+     * @return list of active test runs
+     */
+    public List<TestRunActive> testRunsActive(String projectId) {
+        checkApiKey();
+
+        String uri = String.format("%s/test-runs/active", baseUrl);
+
+        try {
+            URIBuilder uriBuilder = new URIBuilder(uri);
+            uriBuilder.addParameter(PARAM_TENANTID, tenantId);
+            uriBuilder.addParameter("projectIds", projectId);
+
+            HttpGet httpGet = new HttpGet(uriBuilder.build());
+
+            HttpResponse response = executeRequest(httpGet);
+            String result = responseToString(response);
+            logger.debug(result);
+
+            return Arrays.asList(testRunsActiveArrayReader.readValue(result));
+
+        } catch (URISyntaxException | IOException e) {
+            throw new LoadRunnerCloudClientException("call to LoadRunner cloud failed", e);
+        }
+
     }
 
 }

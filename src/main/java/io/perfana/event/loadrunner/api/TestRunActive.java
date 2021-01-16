@@ -13,16 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.perfana.event.loadrunner;
+package io.perfana.event.loadrunner.api;
 
-import nl.stokpop.eventscheduler.api.Event;
-import nl.stokpop.eventscheduler.api.EventFactory;
-import nl.stokpop.eventscheduler.api.EventLogger;
-import nl.stokpop.eventscheduler.api.message.EventMessageBus;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.*;
 
-public class LoadRunnerCloudEventFactory implements EventFactory<LoadRunnerCloudEventConfig> {
-    @Override
-    public Event create(LoadRunnerCloudEventConfig config, EventMessageBus messageBus, EventLogger logger) {
-        return new LoadRunnerCloudEvent(config, messageBus, logger);
+@Value
+@Builder
+@NoArgsConstructor(force = true, access = AccessLevel.PRIVATE)
+@AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class TestRunActive {
+
+    public enum Status {
+        RUNNING, INITIALIZING, CHECKING_STATUS, STOPPING, PAUSED
     }
+
+    int runId;
+    int testId;
+    int projectId;
+    String testName;
+    long startTime;
+    String triggeredBy;
+    Status status;
 }

@@ -17,23 +17,32 @@ package io.perfana.event.loadrunner;
 
 import io.perfana.event.loadrunner.api.RunReply;
 import io.perfana.event.loadrunner.api.RuntimeAdditionalAttribute;
+import io.perfana.event.loadrunner.api.TestRunActive;
 import nl.stokpop.eventscheduler.api.EventAdapter;
 import nl.stokpop.eventscheduler.api.EventLogger;
+import nl.stokpop.eventscheduler.api.message.EventMessage;
+import nl.stokpop.eventscheduler.api.message.EventMessageBus;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConfig> {
 
     private static final String LOADRUNNER_CLOUD_BASE_URL = "https://loadrunner-cloud.saas.microfocus.com/v1";
+    public static final String PERFANA_LCR_PREFIX = "perfana-lcr-";
+    public static final String PLUGIN_NAME = LoadRunnerCloudEvent.class.getSimpleName();
 
     private volatile LoadRunnerCloudClient client;
 
     private volatile int runId;
 
-    public LoadRunnerCloudEvent(LoadRunnerCloudEventConfig eventConfig, EventLogger logger) {
-        super(eventConfig, logger);
+    public LoadRunnerCloudEvent(LoadRunnerCloudEventConfig eventConfig, EventMessageBus messageBus, EventLogger logger) {
+        super(eventConfig, messageBus, logger);
     }
 
     @Override
@@ -48,7 +57,7 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConfi
 
         boolean useProxy = eventConfig.isUseProxy();
 
-        client = new LoadRunnerCloudClient(LOADRUNNER_CLOUD_BASE_URL, logger, useProxy);
+        client = new LoadRunnerCloudClient(LOADRUNNER_CLOUD_BASE_URL, logger, useProxy, eventConfig.getProxyPort());
 
         client.initApiKey(user, password, tenantId);
 
@@ -65,14 +74,90 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConfi
 
         this.runId = runId.getRunId();
 
-        logger.info(String.format("started run with projectId: %s loadTestId: %s at %s with runId: %s",
+        EventMessage message = EventMessage.builder()
+            .pluginName(pluginName())
+            .variable(PERFANA_LCR_PREFIX + "tenantId", tenantId)
+            .variable(PERFANA_LCR_PREFIX + "projectId", projectId)
+            .variable(PERFANA_LCR_PREFIX + "runId", String.valueOf(this.runId))
+            .build();
+        eventMessageBus.send(message);
+
+        logger.info(String.format("started polling if running for projectId: %s loadTestId: %s at %s with runId: %s",
+            projectId, loadTestId, Instant.now(), this.runId));
+
+        Runnable pollForTestRunning = () -> {
+
+            long sleepInMillis = Duration.ofSeconds(eventConfig.getPollingPeriodInSeconds()).toMillis();
+            long maxPollingTimestamp = System.currentTimeMillis() + Duration.ofSeconds(eventConfig.getPollingMaxDurationInSeconds()).toMillis();
+
+            boolean continuePolling = true;
+
+            while (continuePolling) {
+
+                // now start polling if load test is running, then send Go! message
+                try {
+                    List<TestRunActive> testRunActives = client.testRunsActive(projectId);
+
+                    Optional<TestRunActive> testRunActive = testRunActives.stream()
+                        .filter(t -> t.getTestId() == this.runId)
+                        .findFirst();
+
+                    if (testRunActive.isPresent()) {
+                        TestRunActive testRun = testRunActive.get();
+                        logger.info(String.format("Found status for test id %s (%s) is %s", testRun.getStatus(), testRun.getTestId(), testRun.getTestName()));
+                        if (testRun.getStatus() == TestRunActive.Status.RUNNING) {
+                            continuePolling = false;
+                        }
+                    }
+                    } catch (LoadRunnerCloudClientException e) {
+                        logger.warn("Cannot call test runs active, will retry: " + e.getMessage());
+                    }
+
+                try {
+                    Thread.sleep(sleepInMillis);
+                } catch (InterruptedException e) {
+                    logger.warn("Interrupt received, will stop polling now.");
+                    continuePolling = false;
+                    EventMessage stopMessage = EventMessage.builder()
+                        .pluginName(pluginName())
+                        .message("Stop!")
+                        .build();
+                    eventMessageBus.send(stopMessage);
+                }
+
+                if (System.currentTimeMillis() > maxPollingTimestamp) {
+                    logger.warn("Max polling period reached (" + eventConfig.getPollingPeriodInSeconds() + " seconds), will stop polling now.");
+                    continuePolling = false;
+                    EventMessage stopMessage = EventMessage.builder()
+                        .pluginName(pluginName())
+                        .message("Stop!")
+                        .build();
+                    eventMessageBus.send(stopMessage);
+                }
+            }
+
+            EventMessage goMessage = EventMessage.builder()
+                .pluginName(pluginName())
+                .message("Go!")
+                .build();
+
+            eventMessageBus.send(goMessage);
+        };
+
+        Executor executor = Executors.newSingleThreadExecutor(r -> new Thread(r, "LcrPollForTestRunning"));
+        executor.execute(pollForTestRunning);
+
+        logger.info(String.format("started run with projectId: %s loadTestId: %s at %s with runId: %s. Waiting for status RUNNING.",
             projectId, loadTestId, Instant.now(), runId.getRunId()));
+    }
+
+    private String pluginName() {
+        return PLUGIN_NAME + "-" + eventConfig.getName();
     }
 
     @Override
     public void abortTest() {
         logger.info("abort test [" + eventConfig.getTestConfig().getTestRunId() + "] with runId [" + this.runId + "]");
-
         client.stopRun(runId);
     }
 

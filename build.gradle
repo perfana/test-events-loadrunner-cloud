@@ -27,7 +27,7 @@ dependencies {
     ext.httpClientVersion="4.5.13"
     ext.lombokVersion="1.18.16"
 
-    compile "nl.stokpop:event-scheduler:3.0.0-M1-SNAPSHOT"
+    compile "nl.stokpop:event-scheduler:3.0.0-M2-SNAPSHOT"
     compile "org.apache.httpcomponents:httpclient:$httpClientVersion"
     compile "org.apache.httpcomponents:httpmime:$httpClientVersion"
     compile "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
@@ -67,7 +67,7 @@ license {
     header = file("src/main/resources/META-INF/LICENSE.txt")
     ext.year = Calendar.getInstance().get(Calendar.YEAR)
     ext.name = 'Peter Paul Bakker, Perfana'
-    excludes(["**/*.txt", "src/main/resources/META-INF/services"])
+    excludes(["**/*.txt", "src/main/resources/META-INF/services/**"])
     // the standard java style makes intellij complain about dangling javadoc
     mapping('java', 'SLASHSTAR_STYLE')
     skipExistingHeaders true
