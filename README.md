@@ -34,9 +34,9 @@ When the LoadRunner Cloud test reaches the `RUNNNING` state, the `Go!` message i
 ## variables
 
 The LoadRunner Cloud plugin sends the following variables with a message on the `EventMessageBus`:
-* perfana-lcr-tenantId
-* perfana-lcr-projectId
-* perfana-lcr-runId
+* perfana-lrc-tenantId
+* perfana-lrc-projectId
+* perfana-lrc-runId
 
 ## use with events-*-maven-plugin
 

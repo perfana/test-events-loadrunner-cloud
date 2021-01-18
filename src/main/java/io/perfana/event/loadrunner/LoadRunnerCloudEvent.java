@@ -33,7 +33,7 @@ import java.util.concurrent.Executors;
 public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventContext> {
 
     private static final String LOADRUNNER_CLOUD_BASE_URL = "https://loadrunner-cloud.saas.microfocus.com/v1";
-    public static final String PERFANA_LCR_PREFIX = "perfana-lcr-";
+    public static final String PERFANA_LRC_PREFIX = "perfana-lrc-";
     public static final String PLUGIN_NAME = LoadRunnerCloudEvent.class.getSimpleName();
 
     private volatile LoadRunnerCloudClient client;
@@ -75,9 +75,9 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConte
 
         EventMessage message = EventMessage.builder()
             .pluginName(pluginName())
-            .variable(PERFANA_LCR_PREFIX + "tenantId", tenantId)
-            .variable(PERFANA_LCR_PREFIX + "projectId", projectId)
-            .variable(PERFANA_LCR_PREFIX + "runId", String.valueOf(this.runId))
+            .variable(PERFANA_LRC_PREFIX + "tenantId", tenantId)
+            .variable(PERFANA_LRC_PREFIX + "projectId", projectId)
+            .variable(PERFANA_LRC_PREFIX + "runId", String.valueOf(this.runId))
             .build();
         eventMessageBus.send(message);
 
@@ -143,7 +143,7 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConte
             eventMessageBus.send(goMessage);
         };
 
-        Executor executor = Executors.newSingleThreadExecutor(r -> new Thread(r, "LcrPollForTestRunning"));
+        Executor executor = Executors.newSingleThreadExecutor(r -> new Thread(r, "LrcPollForTestRunning"));
         executor.execute(pollForTestRunning);
 
         logger.info(String.format("started run with projectId: %s loadTestId: %s at %s with runId: %s. Waiting for status RUNNING.",
