@@ -20,9 +20,9 @@ import nl.stokpop.eventscheduler.api.EventFactory;
 import nl.stokpop.eventscheduler.api.EventLogger;
 import nl.stokpop.eventscheduler.api.message.EventMessageBus;
 
-public class LoadRunnerCloudEventFactory implements EventFactory<LoadRunnerCloudEventConfig> {
+public class LoadRunnerCloudEventFactory implements EventFactory<LoadRunnerCloudEventContext> {
     @Override
-    public Event create(LoadRunnerCloudEventConfig config, EventMessageBus messageBus, EventLogger logger) {
-        return new LoadRunnerCloudEvent(config, messageBus, logger);
+    public Event create(LoadRunnerCloudEventContext context, EventMessageBus messageBus, EventLogger logger) {
+        return new LoadRunnerCloudEvent(context, messageBus, logger);
     }
 }

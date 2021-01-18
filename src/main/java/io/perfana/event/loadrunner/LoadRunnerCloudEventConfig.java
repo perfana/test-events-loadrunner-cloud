@@ -16,6 +16,10 @@
 package io.perfana.event.loadrunner;
 
 import nl.stokpop.eventscheduler.api.config.EventConfig;
+import nl.stokpop.eventscheduler.api.config.EventContext;
+import nl.stokpop.eventscheduler.api.config.TestContext;
+
+import java.time.Duration;
 
 public class LoadRunnerCloudEventConfig extends EventConfig {
     private String loadRunnerUser;
@@ -28,85 +32,56 @@ public class LoadRunnerCloudEventConfig extends EventConfig {
     private boolean useProxy = false;
     private int proxyPort = 8888;
 
-    @Override
-    public String getEventFactory() {
-        return LoadRunnerCloudEventFactory.class.getName();
-    }
-
-    @Override
-    public boolean isReadyForStartParticipant() {
-        return true;
-    }
-
-    public String getLoadRunnerUser() {
-        return loadRunnerUser;
-    }
-
     public void setLoadRunnerUser(String loadRunnerUser) {
         this.loadRunnerUser = loadRunnerUser;
-    }
-
-    public String getLoadRunnerPassword() {
-        return loadRunnerPassword;
     }
 
     public void setLoadRunnerPassword(String loadRunnerPassword) {
         this.loadRunnerPassword = loadRunnerPassword;
     }
 
-    public String getLoadRunnerTenantId() {
-        return loadRunnerTenantId;
-    }
-
     public void setLoadRunnerTenantId(String loadRunnerTenantId) {
         this.loadRunnerTenantId = loadRunnerTenantId;
-    }
-
-    public String getLoadRunnerProjectId() {
-        return loadRunnerProjectId;
     }
 
     public void setLoadRunnerProjectId(String loadRunnerProjectId) {
         this.loadRunnerProjectId = loadRunnerProjectId;
     }
 
-    public String getLoadRunnerLoadTestId() {
-        return loadRunnerLoadTestId;
-    }
-
     public void setLoadRunnerLoadTestId(String loadRunnerLoadTestId) {
         this.loadRunnerLoadTestId = loadRunnerLoadTestId;
-    }
-
-    public boolean isUseProxy() {
-        return useProxy;
     }
 
     public void setUseProxy(boolean useProxy) {
         this.useProxy = useProxy;
     }
 
-    public int getPollingPeriodInSeconds() {
-        return pollingPeriodInSeconds;
-    }
-
     public void setPollingPeriodInSeconds(int pollingPeriodInSeconds) {
         this.pollingPeriodInSeconds = pollingPeriodInSeconds;
-    }
-
-    public int getPollingMaxDurationInSeconds() {
-        return pollingMaxDurationInSeconds;
     }
 
     public void setPollingMaxDurationInSeconds(int pollingMaxDurationInSeconds) {
         this.pollingMaxDurationInSeconds = pollingMaxDurationInSeconds;
     }
 
-    public int getProxyPort() {
-        return proxyPort;
-    }
-
     public void setProxyPort(int proxyPort) {
         this.proxyPort = proxyPort;
+    }
+
+    private LoadRunnerCloudEventContext createLoadRunnerCloudEventContext(EventContext context) {
+        Duration pollingPeriod = Duration.ofSeconds(this.pollingPeriodInSeconds);
+        Duration pollingMaxDuration = Duration.ofSeconds(this.pollingMaxDurationInSeconds);
+        return new LoadRunnerCloudEventContext(context, loadRunnerUser, loadRunnerPassword, loadRunnerTenantId, loadRunnerProjectId, loadRunnerLoadTestId, pollingPeriod, pollingMaxDuration, useProxy, proxyPort);
+    }
+
+    @Override
+    public LoadRunnerCloudEventContext toContext() {
+        EventContext context = super.toContext();
+        return createLoadRunnerCloudEventContext(context);
+    }
+
+    @Override
+    public EventContext toContext(TestContext overrideTestContext) {
+        return createLoadRunnerCloudEventContext(super.toContext(overrideTestContext));
     }
 }

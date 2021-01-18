@@ -23,7 +23,6 @@ import nl.stokpop.eventscheduler.api.EventLogger;
 import nl.stokpop.eventscheduler.api.message.EventMessage;
 import nl.stokpop.eventscheduler.api.message.EventMessageBus;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -31,7 +30,7 @@ import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConfig> {
+public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventContext> {
 
     private static final String LOADRUNNER_CLOUD_BASE_URL = "https://loadrunner-cloud.saas.microfocus.com/v1";
     public static final String PERFANA_LCR_PREFIX = "perfana-lcr-";
@@ -41,29 +40,29 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConfi
 
     private volatile int runId;
 
-    public LoadRunnerCloudEvent(LoadRunnerCloudEventConfig eventConfig, EventMessageBus messageBus, EventLogger logger) {
-        super(eventConfig, messageBus, logger);
+    public LoadRunnerCloudEvent(LoadRunnerCloudEventContext context, EventMessageBus messageBus, EventLogger logger) {
+        super(context, messageBus, logger);
     }
 
     @Override
     public void beforeTest() {
-        logger.info("before test [" + eventConfig.getTestConfig().getTestRunId() + "]");
+        logger.info("before test [" + eventContext.getTestContext().getTestRunId() + "]");
 
-        String user = eventConfig.getLoadRunnerUser();
-        String password = eventConfig.getLoadRunnerPassword();
-        String tenantId = eventConfig.getLoadRunnerTenantId();
-        String projectId = eventConfig.getLoadRunnerProjectId();
-        String loadTestId = eventConfig.getLoadRunnerLoadTestId();
+        String user = eventContext.getLoadRunnerUser();
+        String password = eventContext.getLoadRunnerPassword();
+        String tenantId = eventContext.getLoadRunnerTenantId();
+        String projectId = eventContext.getLoadRunnerProjectId();
+        String loadTestId = eventContext.getLoadRunnerLoadTestId();
 
-        boolean useProxy = eventConfig.isUseProxy();
+        boolean useProxy = eventContext.isUseProxy();
 
-        client = new LoadRunnerCloudClient(LOADRUNNER_CLOUD_BASE_URL, logger, useProxy, eventConfig.getProxyPort());
+        client = new LoadRunnerCloudClient(LOADRUNNER_CLOUD_BASE_URL, logger, useProxy, eventContext.getProxyPort());
 
         client.initApiKey(user, password, tenantId);
 
         RuntimeAdditionalAttribute attribute = RuntimeAdditionalAttribute.builder()
             .name("perfanaTestRunId")
-            .value(eventConfig.getTestConfig().getTestRunId())
+            .value(eventContext.getTestContext().getTestRunId())
             .description("Use in web_add_header(\"perfana-test-run-id\", lr_get_attrib_string(\"perfanaTestRunId\"))").build();
 
         List<RuntimeAdditionalAttribute> attributes = Collections.singletonList(attribute);
@@ -87,8 +86,8 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConfi
 
         Runnable pollForTestRunning = () -> {
 
-            long sleepInMillis = Duration.ofSeconds(eventConfig.getPollingPeriodInSeconds()).toMillis();
-            long maxPollingTimestamp = System.currentTimeMillis() + Duration.ofSeconds(eventConfig.getPollingMaxDurationInSeconds()).toMillis();
+            long sleepInMillis = eventContext.getPollingPeriod().toMillis();
+            long maxPollingTimestamp = System.currentTimeMillis() + eventContext.getPollingMaxDuration().toMillis();
 
             boolean continuePolling = true;
 
@@ -126,7 +125,7 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConfi
                 }
 
                 if (System.currentTimeMillis() > maxPollingTimestamp) {
-                    logger.warn("Max polling period reached (" + eventConfig.getPollingPeriodInSeconds() + " seconds), will stop polling now.");
+                    logger.warn("Max polling period reached (" + eventContext.getPollingPeriod() + " seconds), will stop polling now.");
                     continuePolling = false;
                     EventMessage stopMessage = EventMessage.builder()
                         .pluginName(pluginName())
@@ -152,12 +151,12 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConfi
     }
 
     private String pluginName() {
-        return PLUGIN_NAME + "-" + eventConfig.getName();
+        return PLUGIN_NAME + "-" + eventContext.getName();
     }
 
     @Override
     public void abortTest() {
-        logger.info("abort test [" + eventConfig.getTestConfig().getTestRunId() + "] with runId [" + this.runId + "]");
+        logger.info("abort test [" + eventContext.getTestContext().getTestRunId() + "] with runId [" + this.runId + "]");
         client.stopRun(runId);
     }
 

@@ -45,54 +45,67 @@ by putting the `test-events-loadrunner-cloud` jar on the classpath of the plugin
 
 Use the `dependencies` element inside the `plugin` element as in the XML snippet below.
 
-For example (from [example-pom.xml](src/test/resources/example-pom.xml)):
+For example, with `perfana-test-client` plugin (from [example-pom.xml](src/test/resources/example-pom.xml)):
 
 ```xml
-<plugin>
-    <groupId>nl.stokpop</groupId>
-    <artifactId>event-scheduler-maven-plugin</artifactId>
-    <configuration>
-        <eventSchedulerConfig>
-            <debugEnabled>true</debugEnabled>
-            <schedulerEnabled>true</schedulerEnabled>
-            <failOnError>true</failOnError>
-            <continueOnEventCheckFailure>true</continueOnEventCheckFailure>
-            <eventConfigs>
-                <eventConfig implementation="io.perfana.event.loadrunner.LoadRunnerCloudEventConfig">
-                    <name>LoadRunnerCloudEvent1</name>
-                    <loadRunnerUser>user</loadRunnerUser>
-                    <loadRunnerPassword>password</loadRunnerPassword>
-                    <loadRunnerTenantId>tenantId</loadRunnerTenantId>
-                    <loadRunnerProjectId>1</loadRunnerProjectId>
-                    <loadRunnerLoadTestId>2</loadRunnerLoadTestId>
-                    <testConfig>
-                        <systemUnderTest>${systemUnderTest}</systemUnderTest>
-                        <version>${version}</version>
-                        <workload>${workload}</workload>
-                        <testEnvironment>${testEnvironment}</testEnvironment>
-                        <testRunId>${testRunId}</testRunId>
-                        <buildResultsUrl>${buildResultsUrl}</buildResultsUrl>
-                        <rampupTimeInSeconds>${rampupTimeInSeconds}</rampupTimeInSeconds>
-                        <constantLoadTimeInSeconds>${constantLoadTimeInSeconds}</constantLoadTimeInSeconds>
-                        <annotations>${annotations}</annotations>
-                        <tags>${tags}</tags>
-                    </testConfig>
-                </eventConfig>
-            </eventConfigs>
-        </eventSchedulerConfig>
-    </configuration>
-    <dependencies>
-        <dependency>
-            <groupId>io.perfana</groupId>
-            <artifactId>test-events-loadrunner-cloud</artifactId>
-            <version>${test-events-loadrunner-cloud.version}</version>
-        </dependency>
-    </dependencies>
-</plugin>
+<plugins>
+    <plugin>
+        <groupId>nl.stokpop</groupId>
+        <artifactId>event-scheduler-maven-plugin</artifactId>
+        <configuration>
+            <eventSchedulerConfig>
+                <debugEnabled>true</debugEnabled>
+                <schedulerEnabled>true</schedulerEnabled>
+                <failOnError>true</failOnError>
+                <continueOnEventCheckFailure>true</continueOnEventCheckFailure>
+                <eventConfigs>
+                    <eventConfig implementation="io.perfana.event.loadrunner.LoadRunnerCloudEventConfig">
+                        <name>LoadRunnerCloudEvent1</name>
+                        <loadRunnerUser>user</loadRunnerUser>
+                        <loadRunnerPassword>password</loadRunnerPassword>
+                        <loadRunnerTenantId>tenantId</loadRunnerTenantId>
+                        <loadRunnerProjectId>1</loadRunnerProjectId>
+                        <loadRunnerLoadTestId>2</loadRunnerLoadTestId>
+                        <useProxy>true</useProxy>
+                    </eventConfig>
+                    <eventConfig implementation="io.perfana.event.PerfanaEventConfig">
+                        <name>PerfanaEvent1</name>
+                        <perfanaUrl>http://localhost:8888</perfanaUrl>
+                        <assertResultsEnabled>false</assertResultsEnabled>
+                        <variables>
+                            <_var1>my_value</_var1>
+                        </variables>
+                        <testConfig>
+                            <systemUnderTest>${systemUnderTest}</systemUnderTest>
+                            <version>${version}</version>
+                            <workload>${workload}</workload>
+                            <testEnvironment>${testEnvironment}</testEnvironment>
+                            <testRunId>${testRunId}</testRunId>
+                            <buildResultsUrl>${buildResultsUrl}</buildResultsUrl>
+                            <rampupTimeInSeconds>${rampupTimeInSeconds}</rampupTimeInSeconds>
+                            <constantLoadTimeInSeconds>${constantLoadTimeInSeconds}</constantLoadTimeInSeconds>
+                            <annotations>${annotations}</annotations>
+                            <tags>${tags}</tags>
+                        </testConfig>
+                    </eventConfig>
+                </eventConfigs>
+            </eventSchedulerConfig>
+        </configuration>
+        <dependencies>
+            <dependency>
+                <groupId>io.perfana</groupId>
+                <artifactId>test-events-loadrunner-cloud</artifactId>
+                <version>${test-events-loadrunner-cloud.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.perfana</groupId>
+                <artifactId>perfana-java-client</artifactId>
+                <version>${perfana-java-client.version}</version>
+            </dependency>
+        </dependencies>
+    </plugin>
+</plugins>
 ```
-
-You can substitute `event-scheduler-maven-plugin` by `event-gatling-maven-plugin`, `event-jmeter-maven-plugin`
-and others when available.
 
 Try this by calling:
 
@@ -104,4 +117,4 @@ Try this by calling:
 
 Works with the Stokpop event-scheduler framework: 
 * https://github.com/stokpop/event-scheduler
-* https://github.com/stokpop/events-gatling-maven-plugin
+* https://github.com/stokpop/event-Scheduler-maven-plugin
