@@ -103,7 +103,7 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConte
 
                     if (testRunActive.isPresent()) {
                         TestRunActive testRun = testRunActive.get();
-                        logger.info(String.format("Found status for test id %s (%s) is %s", testRun.getStatus(), testRun.getTestId(), testRun.getTestName()));
+                        logger.info(String.format("Status for test id %s (%s) is now: %s", testRun.getTestId(), testRun.getTestName(), testRun.getStatus()));
                         if (testRun.getStatus() == TestRunActive.Status.RUNNING) {
                             continuePolling = false;
                         }
@@ -125,7 +125,7 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConte
                 }
 
                 if (System.currentTimeMillis() > maxPollingTimestamp) {
-                    logger.warn("Max polling period reached (" + eventContext.getPollingPeriod() + " seconds), will stop polling now.");
+                    logger.warn("Max polling period reached (" + eventContext.getPollingMaxDuration() + " seconds), will stop polling now.");
                     continuePolling = false;
                     EventMessage stopMessage = EventMessage.builder()
                         .pluginName(pluginName())
