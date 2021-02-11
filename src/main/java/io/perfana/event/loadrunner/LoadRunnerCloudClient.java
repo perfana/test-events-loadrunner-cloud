@@ -376,7 +376,7 @@ class LoadRunnerCloudClient {
         logger.info("Updating " + scriptCount + " " + (scriptCount == 1 ? "script" : "scripts") + " with local runtime settings attributes: " + attributes);
 
         scriptConfigs.stream()
-            .map(ScriptConfig::getScriptId)
+            .map(ScriptConfig::getId)
             .forEach(scriptId -> addAdditionalRuntimeSettingsAttributes(projectId, loadTestId, scriptId, attributes));
     }
 

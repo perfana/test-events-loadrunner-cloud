@@ -77,7 +77,7 @@ public class LoadRunnerCloudClientTest {
         wireMockRule.stubFor(post(urlEqualTo("/projects/1/load-tests/2/runs?TENANTID=123")))
             .setResponse(ResponseDefinitionBuilder.okForEmptyJson().build());
 
-        ScriptConfig scriptConfig = ScriptConfig.builder().scriptId(5).build();
+        ScriptConfig scriptConfig = ScriptConfig.builder().id(5).scriptId(501).build();
         wireMockRule.stubFor(get(urlEqualTo("/projects/1/load-tests/2/scripts?TENANTID=123")))
             .setResponse(ResponseDefinitionBuilder.okForJson(new ScriptConfig[] {scriptConfig}).build());
 
