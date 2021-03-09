@@ -98,7 +98,7 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConte
                     List<TestRunActive> testRunActives = client.testRunsActive(projectId);
 
                     Optional<TestRunActive> testRunActive = testRunActives.stream()
-                        .filter(t -> t.getTestId() == this.runId)
+                        .filter(t -> t.getRunId() == this.runId)
                         .findFirst();
 
                     if (testRunActive.isPresent()) {
