@@ -7,9 +7,9 @@ plugins {
     id 'maven-publish'
     id 'signing'
     // check dependency updates: ./gradlew dependencyUpdates -Drevision=release
-    id 'com.github.ben-manes.versions' version '0.36.0'
+    id 'com.github.ben-manes.versions' version '0.38.0'
     id 'com.github.hierynomus.license' version '0.15.0'
-    id 'io.codearte.nexus-staging' version '0.22.0'
+    id 'io.codearte.nexus-staging' version '0.30.0'
 }
 
 repositories {
@@ -23,9 +23,9 @@ repositories {
 
 dependencies {
 
-    ext.jacksonVersion="2.12.1"
+    ext.jacksonVersion="2.12.2"
     ext.httpClientVersion="4.5.13"
-    ext.lombokVersion="1.18.16"
+    ext.lombokVersion="1.18.18"
 
     compile "nl.stokpop:event-scheduler:3.0.1"
     compile "org.apache.httpcomponents:httpclient:$httpClientVersion"
@@ -35,7 +35,7 @@ dependencies {
     compile "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
     // for correct date time parsing in json
     compile "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion"
-    testCompile "junit:junit:4.13.1"
+    testCompile "junit:junit:4.13.2"
     testCompile "com.github.tomakehurst:wiremock-jre8:2.27.2"
     compileOnly "org.projectlombok:lombok:$lombokVersion"
     annotationProcessor "org.projectlombok:lombok:$lombokVersion"
@@ -45,7 +45,7 @@ dependencies {
 }
 
 group = 'io.perfana'
-version = '1.1.0'
+version = '1.1.3-SNAPSHOT'
 
 description = 'test-events-loadrunner-cloud'
 sourceCompatibility = '1.8'
@@ -179,4 +179,20 @@ nexusStaging {
     username = project.properties['ossrhUser'] ?: "noUser"
     password = project.properties['ossrhPassword'] ?: "noPassword"
 }
+
+// prevent alpha releases as a suggestion to update in dependencyUpdates
+// see: https://github.com/ben-manes/gradle-versions-plugin#revisions
+def isNonStable = { String version ->
+    def stableKeyword = ['RELEASE', 'FINAL', 'GA'].any { it -> version.toUpperCase().contains(it) }
+    def regex = /^[0-9,.v-]+(-r)?$/
+    return !stableKeyword && !(version ==~ regex)
+}
+
+tasks.named("dependencyUpdates").configure {
+    rejectVersionIf {
+        isNonStable(it.candidate.version)
+    }
+}
+
+
 
