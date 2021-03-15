@@ -13,7 +13,7 @@ the test changes from `INITIALIZING` state to `RUNNING` state.
 ## messages
 This is a `readyForStartParticipant`, so only when this event plugin sends a `Go!` message
 on the `eventMessageBus` the event scheduler can progress to the `startTest` event. 
-When the LoadRunner Cloud test reaches the `RUNNNING` state, the `Go!` message is sent.
+When the LoadRunner Cloud test reaches the `RUNNING` state, the `Go!` message is sent.
 
 ## properties for LoadRunner Cloud:
 * `loadRunnerUser` the user 
@@ -21,6 +21,7 @@ When the LoadRunner Cloud test reaches the `RUNNNING` state, the `Go!` message i
 * `loadRunnerTenantId` the tenantId 
 * `loadRunnerProjectId` the projectId
 * `loadRunnerLoadTestId` the loadTestId
+* `loadRunnerUseTracingHeader` send tracing header via the run-time-settings (rts) (optional, default false)
 * `pollingPeriodInSeconds` seconds between check if test is in RUNNING state (optional, default 10)
 * `pollingMaxDurationInSeconds` max duration to check if test gets to RUNNING state (optional, default 300)
 * `useProxy` activate proxy, for example to use with [mitmproxy](https://mitmproxy.org/) 
@@ -37,6 +38,14 @@ The LoadRunner Cloud plugin sends the following variables with a message on the 
 * perfana-lrc-tenantId
 * perfana-lrc-projectId
 * perfana-lrc-runId
+
+## tracing header
+
+When `loadRunnerUseTracingHeader` is `true`, the tracing header is sent to the script run-time-settings.
+The tracing header is the test run id. 
+In the scripts the tracing header can be injected as web header via `web_add_header` and `lr_get_attrib_string`:
+
+    web_add_header("perfana-test-run-id", lr_get_attrib_string("perfanaTestRunId"))
 
 ## use with events-*-maven-plugin
 

@@ -35,6 +35,7 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConte
     private static final String LOADRUNNER_CLOUD_BASE_URL = "https://loadrunner-cloud.saas.microfocus.com/v1";
     public static final String PERFANA_LRC_PREFIX = "perfana-lrc-";
     public static final String PLUGIN_NAME = LoadRunnerCloudEvent.class.getSimpleName();
+    public static final String TRACING_HEADER_NAME = "perfanaTestRunId";
 
     private volatile LoadRunnerCloudClient client;
 
@@ -60,14 +61,12 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConte
 
         client.initApiKey(user, password, tenantId);
 
-        RuntimeAdditionalAttribute attribute = RuntimeAdditionalAttribute.builder()
-            .name("perfanaTestRunId")
-            .value(eventContext.getTestContext().getTestRunId())
-            .description("Use in web_add_header(\"perfana-test-run-id\", lr_get_attrib_string(\"perfanaTestRunId\"))").build();
-
-        List<RuntimeAdditionalAttribute> attributes = Collections.singletonList(attribute);
-
-        client.addAdditionalRuntimeSettingsAttributesForAllScriptsOfTest(projectId, loadTestId, attributes);
+        if (eventContext.isLoadRunnerUseTracingHeader()) {
+            sendTracingHeader(projectId, loadTestId);
+        }
+        else {
+            logger.info("send tracing header is disabled");
+        }
 
         RunReply runId = client.startRun(projectId, loadTestId);
 
@@ -148,6 +147,20 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConte
 
         logger.info(String.format("started run with projectId: %s loadTestId: %s at %s with runId: %s. Waiting for status RUNNING.",
             projectId, loadTestId, Instant.now(), runId.getRunId()));
+    }
+
+    private void sendTracingHeader(String projectId, String loadTestId) {
+        String testRunId = eventContext.getTestContext().getTestRunId();
+        logger.info("send tracing header '" + TRACING_HEADER_NAME + ": " + testRunId + "'");
+
+        RuntimeAdditionalAttribute attribute = RuntimeAdditionalAttribute.builder()
+            .name(TRACING_HEADER_NAME)
+            .value(testRunId)
+            .description("Use in web_add_header(\"perfana-test-run-id\", lr_get_attrib_string(\"" + TRACING_HEADER_NAME + "\"))").build();
+
+        List<RuntimeAdditionalAttribute> attributes = Collections.singletonList(attribute);
+
+        client.addAdditionalRuntimeSettingsAttributesForAllScriptsOfTest(projectId, loadTestId, attributes);
     }
 
     private String pluginName() {

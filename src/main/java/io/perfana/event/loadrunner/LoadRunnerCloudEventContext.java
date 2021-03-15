@@ -25,6 +25,7 @@ public class LoadRunnerCloudEventContext extends EventContext {
     private final String loadRunnerTenantId;
     private final String loadRunnerProjectId;
     private final String loadRunnerLoadTestId;
+    private final boolean loadRunnerUseTracingHeader;
     private final Duration pollingPeriod;
     private final Duration pollingMaxDuration;
     private final boolean useProxy;
@@ -37,6 +38,7 @@ public class LoadRunnerCloudEventContext extends EventContext {
         String loadRunnerTenantId,
         String loadRunnerProjectId,
         String loadRunnerLoadTestId,
+        boolean loadRunnerUseTracingHeader,
         Duration pollingPeriod,
         Duration pollingMaxDuration,
         boolean useProxy,
@@ -47,6 +49,7 @@ public class LoadRunnerCloudEventContext extends EventContext {
             this.loadRunnerTenantId = loadRunnerTenantId;
             this.loadRunnerProjectId = loadRunnerProjectId;
             this.loadRunnerLoadTestId = loadRunnerLoadTestId;
+            this.loadRunnerUseTracingHeader = loadRunnerUseTracingHeader;
             this.pollingPeriod = pollingPeriod;
             this.pollingMaxDuration = pollingMaxDuration;
             this.useProxy = useProxy;
@@ -87,5 +90,9 @@ public class LoadRunnerCloudEventContext extends EventContext {
 
     public int getProxyPort() {
         return proxyPort;
+    }
+
+    public boolean isLoadRunnerUseTracingHeader() {
+        return loadRunnerUseTracingHeader;
     }
 }
