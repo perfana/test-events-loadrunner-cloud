@@ -15,7 +15,7 @@
  */
 package io.perfana.event.loadrunner;
 
-import nl.stokpop.eventscheduler.api.config.EventContext;
+import io.perfana.eventscheduler.api.config.EventContext;
 
 import java.time.Duration;
 

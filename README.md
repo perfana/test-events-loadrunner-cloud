@@ -59,7 +59,7 @@ For example, with `perfana-test-client` plugin (from [example-pom.xml](src/test/
 ```xml
 <plugins>
     <plugin>
-        <groupId>nl.stokpop</groupId>
+        <groupId>io.perfana</groupId>
         <artifactId>event-scheduler-maven-plugin</artifactId>
         <configuration>
             <eventSchedulerConfig>
@@ -124,6 +124,6 @@ Try this by calling:
 
 * create lookups for the project and test ids based on names
 
-Works with the Stokpop event-scheduler framework: 
-* https://github.com/stokpop/event-scheduler
-* https://github.com/stokpop/event-Scheduler-maven-plugin
+Works with the Perfana event-scheduler framework: 
+* https://github.com/perfana/event-scheduler
+* https://github.com/perfana/event-Scheduler-maven-plugin

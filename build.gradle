@@ -1,54 +1,52 @@
 import org.gradle.internal.os.OperatingSystem
 
+import java.time.Duration
+
 plugins {
     id 'java'
-    id 'java-library'
-    id 'de.marcphilipp.nexus-publish' version '0.4.0'
-    id 'maven-publish'
     id 'signing'
+    id 'maven-publish'
+    id 'io.github.gradle-nexus.publish-plugin' version '1.1.0'
     // check dependency updates: ./gradlew dependencyUpdates -Drevision=release
-    id 'com.github.ben-manes.versions' version '0.38.0'
-    id 'com.github.hierynomus.license' version '0.15.0'
-    id 'io.codearte.nexus-staging' version '0.30.0'
+    id 'com.github.ben-manes.versions' version '0.41.0'
+    id 'com.github.hierynomus.license' version '0.16.1'
 }
 
 repositories {
     mavenLocal()
     mavenCentral()
-    jcenter()
-    maven {
-        url "https://oss.sonatype.org/content/repositories/snapshots/"
-    }
-}
-
-dependencies {
-
-    ext.jacksonVersion="2.12.2"
-    ext.httpClientVersion="4.5.13"
-    ext.lombokVersion="1.18.18"
-
-    compile "nl.stokpop:event-scheduler:3.0.1"
-    compile "org.apache.httpcomponents:httpclient:$httpClientVersion"
-    compile "org.apache.httpcomponents:httpmime:$httpClientVersion"
-    compile "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
-    compile "com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion"
-    compile "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
-    // for correct date time parsing in json
-    compile "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion"
-    testCompile "junit:junit:4.13.2"
-    testCompile "com.github.tomakehurst:wiremock-jre8:2.27.2"
-    compileOnly "org.projectlombok:lombok:$lombokVersion"
-    annotationProcessor "org.projectlombok:lombok:$lombokVersion"
-    // enable logging in tests, e.g. to see HttpClient traffic, see test resource logback.xml
-    testRuntime "org.slf4j:jcl-over-slf4j:1.7.30"
-    testRuntime "ch.qos.logback:logback-classic:1.2.3"
 }
 
 group = 'io.perfana'
-version = '1.1.3-SNAPSHOT'
-
+version = file("VERSION").readLines().first()
 description = 'test-events-loadrunner-cloud'
+
 sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+dependencies {
+
+    ext.jacksonVersion="2.13.1"
+    ext.httpClientVersion="4.5.13"
+    ext.lombokVersion="1.18.22"
+
+    implementation "com.github.stephenc.jcip:jcip-annotations:1.0-1"
+    implementation "io.perfana:event-scheduler:3.0.2"
+    implementation "org.apache.httpcomponents:httpclient:$httpClientVersion"
+    implementation "org.apache.httpcomponents:httpmime:$httpClientVersion"
+    implementation "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
+    implementation "com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion"
+    implementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+    // for correct date time parsing in json
+    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion"
+    testImplementation "junit:junit:4.13.2"
+    testImplementation "com.github.tomakehurst:wiremock-jre8:2.32.0"
+    compileOnly "org.projectlombok:lombok:$lombokVersion"
+    annotationProcessor "org.projectlombok:lombok:$lombokVersion"
+    // enable logging in tests, e.g. to see HttpClient traffic, see test resource logback.xml
+    testImplementation "org.slf4j:jcl-over-slf4j:1.7.35"
+    testImplementation "ch.qos.logback:logback-classic:1.2.10"
+}
 
 publishing {
     publications {
@@ -56,6 +54,11 @@ publishing {
             from(components.java)
         }
     }
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
 }
 
 tasks.withType(JavaCompile) {
@@ -72,28 +75,6 @@ license {
     // the standard java style makes intellij complain about dangling javadoc
     mapping('java', 'SLASHSTAR_STYLE')
     skipExistingHeaders true
-}
-
-nexusPublishing {
-    repositories {
-        sonatype()
-    }
-}
-
-task sourceJar(type: Jar) {
-    classifier "sources"
-    from sourceSets.main.allJava
-}
-
-task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier "javadoc"
-    from javadoc.destinationDir
-}
-
-artifacts {
-    archives jar
-    archives sourceJar
-    archives javadocJar
 }
 
 if (project.hasProperty('release')) {
@@ -128,7 +109,7 @@ if (project.hasProperty('release')) {
             repositories {
                 mavenDeployer {
                     // POM signature
-                    beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+                    beforeDeployment { deployment -> signing.signPom(deployment) }
                     // Target repository
                     String repositoryUrl
                     if (version.endsWith("SNAPSHOT")) {
@@ -162,9 +143,9 @@ if (project.hasProperty('release')) {
 
                         developers {
                             developer {
-                                id = 'stokpop'
+                                id = 'peterpaulbakker'
                                 name = 'Peter Paul Bakker'
-                                email = 'peter.paul.bakker@stokpop.nl'
+                                email = 'peter.paul@perfana.io'
                             }
                         }
                     }
@@ -175,9 +156,13 @@ if (project.hasProperty('release')) {
     }
 }
 
-nexusStaging {
-    username = project.properties['ossrhUser'] ?: "noUser"
-    password = project.properties['ossrhPassword'] ?: "noPassword"
+nexusPublishing {
+    repositories {
+        sonatype()
+    }
+    // Prevent "java.net.SocketTimeoutException: timeout", when Sonatype is slow.
+    connectTimeout = Duration.ofMinutes(3)
+    clientTimeout = Duration.ofMinutes(3)
 }
 
 // prevent alpha releases as a suggestion to update in dependencyUpdates

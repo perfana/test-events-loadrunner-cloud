@@ -18,10 +18,10 @@ package io.perfana.event.loadrunner;
 import io.perfana.event.loadrunner.api.RunReply;
 import io.perfana.event.loadrunner.api.RuntimeAdditionalAttribute;
 import io.perfana.event.loadrunner.api.TestRunActive;
-import nl.stokpop.eventscheduler.api.EventAdapter;
-import nl.stokpop.eventscheduler.api.EventLogger;
-import nl.stokpop.eventscheduler.api.message.EventMessage;
-import nl.stokpop.eventscheduler.api.message.EventMessageBus;
+import io.perfana.eventscheduler.api.EventAdapter;
+import io.perfana.eventscheduler.api.EventLogger;
+import io.perfana.eventscheduler.api.message.EventMessage;
+import io.perfana.eventscheduler.api.message.EventMessageBus;
 
 import java.time.Instant;
 import java.util.Collections;

@@ -20,7 +20,7 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>nl.stokpop</groupId>
+    <groupId>io.perfana</groupId>
     <artifactId>events-test</artifactId>
     <version>1.0-SNAPSHOT</version>
 
@@ -48,7 +48,7 @@
         <pluginManagement>
             <plugins>
                 <plugin>
-                    <groupId>nl.stokpop</groupId>
+                    <groupId>io.perfana</groupId>
                     <artifactId>event-scheduler-maven-plugin</artifactId>
                     <version>${event-scheduler-maven-plugin.version}</version>
                 </plugin>
@@ -57,7 +57,7 @@
 
         <plugins>
             <plugin>
-                <groupId>nl.stokpop</groupId>
+                <groupId>io.perfana</groupId>
                 <artifactId>event-scheduler-maven-plugin</artifactId>
                 <configuration>
                     <eventSchedulerConfig>

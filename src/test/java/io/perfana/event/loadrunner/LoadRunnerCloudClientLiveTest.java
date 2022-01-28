@@ -18,7 +18,7 @@ package io.perfana.event.loadrunner;
 import io.perfana.event.loadrunner.api.RuntimeAdditionalAttribute;
 import io.perfana.event.loadrunner.api.ScriptConfig;
 import io.perfana.event.loadrunner.api.TestRunActive;
-import nl.stokpop.eventscheduler.log.EventLoggerStdOut;
+import io.perfana.eventscheduler.log.EventLoggerStdOut;
 import org.junit.Ignore;
 import org.junit.Test;
 
