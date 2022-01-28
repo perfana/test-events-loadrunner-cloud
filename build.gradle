@@ -56,6 +56,7 @@ publishing {
     }
 }
 
+// ossrh requires javadoc and sources https://central.sonatype.org/pages/requirements.html
 java {
     withJavadocJar()
     withSourcesJar()
@@ -68,91 +69,70 @@ tasks.withType(JavaCompile) {
 license {
     // license check is broken on windows, skip
     if (OperatingSystem.current().isWindows()) ignoreFailures = true
-    header = file("src/main/resources/META-INF/LICENSE.txt")
     ext.year = Calendar.getInstance().get(Calendar.YEAR)
     ext.name = 'Peter Paul Bakker, Perfana'
+
+    header = file("src/main/resources/META-INF/LICENSE.txt")
+
     excludes(["**/*.txt", "src/main/resources/META-INF/services/**"])
-    // the standard java style makes intellij complain about dangling javadoc
-    mapping('java', 'SLASHSTAR_STYLE')
-    skipExistingHeaders true
+
+    mapping {
+        // the standard java style makes intellij complain about dangling javadoc
+        java = "SLASHSTAR_STYLE"
+    }
+    ignoreFailures = false
+    strictCheck = true
 }
 
-if (project.hasProperty('release')) {
-
-    subprojects {
-
-        task javadocJar(type: Jar) {
-            archiveClassifier.set('javadoc')
-            from javadoc
+// https://docs.gradle.org/current/userguide/signing_plugin.html
+// this only configures signing if the key is found
+def hasSigningKey = project.hasProperty("signingKeyId") || project.hasProperty("signingKey")
+if(hasSigningKey) {
+    sign(project)
+}
+void sign(Project project) {
+    project.signing {
+        required { project.gradle.taskGraph.hasTask("publish") }
+        def signingKeyId = project.findProperty("signingKeyId")
+        def signingKey = project.findProperty("signingKey")
+        def signingPassword = project.findProperty("signingPassword")
+        if (signingKeyId) {
+            useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
+        } else if (signingKey) {
+            useInMemoryPgpKeys(signingKey, signingPassword)
         }
-
-        task sourcesJar(type: Jar) {
-            archiveClassifier.set('sources')
-            from sourceSets.main.allSource
-        }
-
-        artifacts {
-            archives javadocJar, sourcesJar
-        }
+        sign publishing.publications.maven
     }
+}
 
-    allprojects {
-        apply plugin: 'signing'
-        apply plugin: 'maven'
-
-        // Signature of artifacts
-        signing {
-            sign configurations.archives
-        }
-        // OSSRH publication
-        uploadArchives {
-            repositories {
-                mavenDeployer {
-                    // POM signature
-                    beforeDeployment { deployment -> signing.signPom(deployment) }
-                    // Target repository
-                    String repositoryUrl
-                    if (version.endsWith("SNAPSHOT")) {
-                        repositoryUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
-                    }
-                    else {
-                        repositoryUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-                    }
-                    repository(url: repositoryUrl) {
-                        authentication(userName: ossrhUser, password: ossrhPassword)
-                    }
-                    pom.project {
-                        name project.getName()
-                        description project.description
-                        packaging 'jar'
-                        url 'https://github.com/perfana/test-events-loadrunner-cloud.git'
-
-                        scm {
-                            connection 'scm:git:https://github.com/perfana/test-events-loadrunner-cloud.git'
-                            developerConnection 'scm:git:git@github.com:perfana/test-events-loadrunner-cloud.git'
-                            url 'https://github.com/perfana/test-events-loadrunner-cloud.git'
-                        }
-
-                        licenses {
-                            license {
-                                name 'The Apache Software License, Version 2.0'
-                                url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                                distribution 'repo'
-                            }
-                        }
-
-                        developers {
-                            developer {
-                                id = 'peterpaulbakker'
-                                name = 'Peter Paul Bakker'
-                                email = 'peter.paul@perfana.io'
-                            }
-                        }
-                    }
+// customize the pom so it complies to Maven central requirements https://central.sonatype.org/pages/requirements.html
+// https://docs.gradle.org/current/userguide/maven_plugin.html#sec:maven_pom_generation
+project.plugins.withType(MavenPublishPlugin).all {
+    PublishingExtension publishing = project.extensions.getByType(PublishingExtension)
+    publishing.publications.withType(MavenPublication).all { mavenPublication ->
+        mavenPublication.pom {
+            name = "${project.group}:${project.name}"
+            description = name
+            url = "https://github.com/perfana/event-scheduler.git"
+            licenses {
+                license {
+                    name = "The Apache License, Version 2.0"
+                    url = "https://www.apache.org/licenses/LICENSE-2.0"
                 }
             }
+            developers {
+                developer {
+                    id = 'peter.paul.bakker'
+                    name = 'Peter Paul Bakker'
+                    email = 'peter.paul@perfana.io'
+                }
+            }
+            scm {
+                connection = "scm:git:https://github.com/perfana/event-scheduler.git"
+                developerConnection = "scm:git:git@github.com:perfana/event-scheduler.git"
+                url = "https://github.com/perfana/event-scheduler.git"
+            }
         }
-
     }
 }
 
@@ -164,20 +144,3 @@ nexusPublishing {
     connectTimeout = Duration.ofMinutes(3)
     clientTimeout = Duration.ofMinutes(3)
 }
-
-// prevent alpha releases as a suggestion to update in dependencyUpdates
-// see: https://github.com/ben-manes/gradle-versions-plugin#revisions
-def isNonStable = { String version ->
-    def stableKeyword = ['RELEASE', 'FINAL', 'GA'].any { it -> version.toUpperCase().contains(it) }
-    def regex = /^[0-9,.v-]+(-r)?$/
-    return !stableKeyword && !(version ==~ regex)
-}
-
-tasks.named("dependencyUpdates").configure {
-    rejectVersionIf {
-        isNonStable(it.candidate.version)
-    }
-}
-
-
-
