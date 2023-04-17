@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Peter Paul Bakker, Perfana
+ * Copyright (C) 2023 Peter Paul Bakker, Perfana
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ public class LoadRunnerCloudEventContext extends EventContext {
         Duration pollingMaxDuration,
         boolean useProxy,
         int proxyPort) {
-            super(context, LoadRunnerCloudEventFactory.class.getName(), true);
+            super(context, LoadRunnerCloudEventFactory.class.getName());
             this.loadRunnerUser = loadRunnerUser;
             this.loadRunnerPassword = loadRunnerPassword;
             this.loadRunnerTenantId = loadRunnerTenantId;

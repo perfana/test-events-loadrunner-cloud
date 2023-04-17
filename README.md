@@ -67,6 +67,18 @@ For example, with `perfana-test-client` plugin (from [example-pom.xml](src/test/
                 <schedulerEnabled>true</schedulerEnabled>
                 <failOnError>true</failOnError>
                 <continueOnEventCheckFailure>true</continueOnEventCheckFailure>
+                <testConfig>
+                    <systemUnderTest>${systemUnderTest}</systemUnderTest>
+                    <version>${version}</version>
+                    <workload>${workload}</workload>
+                    <testEnvironment>${testEnvironment}</testEnvironment>
+                    <testRunId>${testRunId}</testRunId>
+                    <buildResultsUrl>${buildResultsUrl}</buildResultsUrl>
+                    <rampupTimeInSeconds>${rampupTimeInSeconds}</rampupTimeInSeconds>
+                    <constantLoadTimeInSeconds>${constantLoadTimeInSeconds}</constantLoadTimeInSeconds>
+                    <annotations>${annotations}</annotations>
+                    <tags>${tags}</tags>
+                </testConfig>
                 <eventConfigs>
                     <eventConfig implementation="io.perfana.event.loadrunner.LoadRunnerCloudEventConfig">
                         <name>LoadRunnerCloudEvent1</name>
@@ -84,18 +96,6 @@ For example, with `perfana-test-client` plugin (from [example-pom.xml](src/test/
                         <variables>
                             <_var1>my_value</_var1>
                         </variables>
-                        <testConfig>
-                            <systemUnderTest>${systemUnderTest}</systemUnderTest>
-                            <version>${version}</version>
-                            <workload>${workload}</workload>
-                            <testEnvironment>${testEnvironment}</testEnvironment>
-                            <testRunId>${testRunId}</testRunId>
-                            <buildResultsUrl>${buildResultsUrl}</buildResultsUrl>
-                            <rampupTimeInSeconds>${rampupTimeInSeconds}</rampupTimeInSeconds>
-                            <constantLoadTimeInSeconds>${constantLoadTimeInSeconds}</constantLoadTimeInSeconds>
-                            <annotations>${annotations}</annotations>
-                            <tags>${tags}</tags>
-                        </testConfig>
                     </eventConfig>
                 </eventConfigs>
             </eventSchedulerConfig>
@@ -120,9 +120,11 @@ Try this by calling:
 
     mvn -f src/test/resources/example-pom.xml event-scheduler:test
 
-##Todo
+## Todo
 
 * create lookups for the project and test ids based on names
+
+## References
 
 Works with the Perfana event-scheduler framework: 
 * https://github.com/perfana/event-scheduler

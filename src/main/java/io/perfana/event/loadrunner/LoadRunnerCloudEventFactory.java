@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Peter Paul Bakker, Perfana
+ * Copyright (C) 2023 Peter Paul Bakker, Perfana
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,11 +18,14 @@ package io.perfana.event.loadrunner;
 import io.perfana.eventscheduler.api.Event;
 import io.perfana.eventscheduler.api.EventFactory;
 import io.perfana.eventscheduler.api.EventLogger;
+import io.perfana.eventscheduler.api.config.TestContext;
 import io.perfana.eventscheduler.api.message.EventMessageBus;
 
 public class LoadRunnerCloudEventFactory implements EventFactory<LoadRunnerCloudEventContext> {
+
     @Override
-    public Event create(LoadRunnerCloudEventContext context, EventMessageBus messageBus, EventLogger logger) {
-        return new LoadRunnerCloudEvent(context, messageBus, logger);
+    public Event create(LoadRunnerCloudEventContext eventContext, TestContext testContext, EventMessageBus messageBus, EventLogger logger) {
+        return new LoadRunnerCloudEvent(eventContext, testContext, messageBus, logger);
     }
+
 }

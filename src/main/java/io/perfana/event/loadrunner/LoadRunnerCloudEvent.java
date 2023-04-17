@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Peter Paul Bakker, Perfana
+ * Copyright (C) 2023 Peter Paul Bakker, Perfana
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import io.perfana.event.loadrunner.api.RuntimeAdditionalAttribute;
 import io.perfana.event.loadrunner.api.TestRunActive;
 import io.perfana.eventscheduler.api.EventAdapter;
 import io.perfana.eventscheduler.api.EventLogger;
+import io.perfana.eventscheduler.api.config.TestContext;
 import io.perfana.eventscheduler.api.message.EventMessage;
 import io.perfana.eventscheduler.api.message.EventMessageBus;
 
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventContext> {
 
@@ -37,17 +39,17 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConte
     public static final String PLUGIN_NAME = LoadRunnerCloudEvent.class.getSimpleName();
     public static final String TRACING_HEADER_NAME = "perfanaTestRunId";
 
-    private volatile LoadRunnerCloudClient client;
+    private final AtomicReference<LoadRunnerCloudClient> client = new AtomicReference<>();
 
     private volatile int runId;
 
-    public LoadRunnerCloudEvent(LoadRunnerCloudEventContext context, EventMessageBus messageBus, EventLogger logger) {
-        super(context, messageBus, logger);
+    public LoadRunnerCloudEvent(LoadRunnerCloudEventContext context, TestContext testContext, EventMessageBus messageBus, EventLogger logger) {
+        super(context, testContext, messageBus, logger);
     }
 
     @Override
     public void beforeTest() {
-        logger.info("before test [" + eventContext.getTestContext().getTestRunId() + "]");
+        logger.info("before test [" + testContext.getTestRunId() + "]");
 
         String user = eventContext.getLoadRunnerUser();
         String password = eventContext.getLoadRunnerPassword();
@@ -57,9 +59,9 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConte
 
         boolean useProxy = eventContext.isUseProxy();
 
-        client = new LoadRunnerCloudClient(LOADRUNNER_CLOUD_BASE_URL, logger, useProxy, eventContext.getProxyPort());
+        client.set(new LoadRunnerCloudClient(LOADRUNNER_CLOUD_BASE_URL, logger, useProxy, eventContext.getProxyPort()));
 
-        client.initApiKey(user, password, tenantId);
+        client.get().initApiKey(user, password, tenantId);
 
         if (eventContext.isLoadRunnerUseTracingHeader()) {
             sendTracingHeader(projectId, loadTestId);
@@ -68,9 +70,9 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConte
             logger.info("send tracing header is disabled");
         }
 
-        RunReply runId = client.startRun(projectId, loadTestId);
+        RunReply myRunId = client.get().startRun(projectId, loadTestId);
 
-        this.runId = runId.getRunId();
+        this.runId = myRunId.getRunId();
 
         EventMessage message = EventMessage.builder()
             .pluginName(pluginName())
@@ -94,7 +96,7 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConte
 
                 // now start polling if load test is running, then send Go! message
                 try {
-                    List<TestRunActive> testRunActives = client.testRunsActive(projectId);
+                    List<TestRunActive> testRunActives = client.get().testRunsActive(projectId);
 
                     Optional<TestRunActive> testRunActive = testRunActives.stream()
                         .filter(t -> t.getRunId() == this.runId)
@@ -121,6 +123,7 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConte
                         .message("Stop!")
                         .build();
                     eventMessageBus.send(stopMessage);
+                    Thread.currentThread().interrupt();
                 }
 
                 if (System.currentTimeMillis() > maxPollingTimestamp) {
@@ -146,11 +149,11 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConte
         executor.execute(pollForTestRunning);
 
         logger.info(String.format("started run with projectId: %s loadTestId: %s at %s with runId: %s. Waiting for status RUNNING.",
-            projectId, loadTestId, Instant.now(), runId.getRunId()));
+            projectId, loadTestId, Instant.now(), myRunId.getRunId()));
     }
 
     private void sendTracingHeader(String projectId, String loadTestId) {
-        String testRunId = eventContext.getTestContext().getTestRunId();
+        String testRunId = testContext.getTestRunId();
         logger.info("send tracing header '" + TRACING_HEADER_NAME + ": " + testRunId + "'");
 
         RuntimeAdditionalAttribute attribute = RuntimeAdditionalAttribute.builder()
@@ -159,8 +162,11 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConte
             .description("Use in web_add_header(\"perfana-test-run-id\", lr_get_attrib_string(\"" + TRACING_HEADER_NAME + "\"))").build();
 
         List<RuntimeAdditionalAttribute> attributes = Collections.singletonList(attribute);
-
-        client.addAdditionalRuntimeSettingsAttributesForAllScriptsOfTest(projectId, loadTestId, attributes);
+        if (client.get() != null) {
+            client.get().addAdditionalRuntimeSettingsAttributesForAllScriptsOfTest(projectId, loadTestId, attributes);
+        } else {
+            logger.warn("Cannot add additional runtime settings attributes for all scripts of test, LoadRunnerCloudClient is null");
+        }
     }
 
     private String pluginName() {
@@ -169,8 +175,12 @@ public class LoadRunnerCloudEvent extends EventAdapter<LoadRunnerCloudEventConte
 
     @Override
     public void abortTest() {
-        logger.info("abort test [" + eventContext.getTestContext().getTestRunId() + "] with runId [" + this.runId + "]");
-        client.stopRun(runId);
+        logger.info("abort test [" + testContext.getTestRunId() + "] with runId [" + this.runId + "]");
+        if (client.get() != null) {
+            client.get().stopRun(runId);
+        } else {
+            logger.warn("Cannot call stop run, LoadRunnerCloudClient is null");
+        }
     }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Peter Paul Bakker, Perfana
+ * Copyright (C) 2023 Peter Paul Bakker, Perfana
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ package io.perfana.event.loadrunner;
 
 import io.perfana.eventscheduler.api.config.EventConfig;
 import io.perfana.eventscheduler.api.config.EventContext;
-import io.perfana.eventscheduler.api.config.TestContext;
 
 import java.time.Duration;
 
@@ -95,8 +94,4 @@ public class LoadRunnerCloudEventConfig extends EventConfig {
         return createLoadRunnerCloudEventContext(context);
     }
 
-    @Override
-    public EventContext toContext(TestContext overrideTestContext) {
-        return createLoadRunnerCloudEventContext(super.toContext(overrideTestContext));
-    }
 }
